@@ -1,0 +1,110 @@
+---
+- name: Ansible Challenge
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Install Apps in Ubuntu Server
+      apt:
+        pkg:
+          - net-tools
+          - mtr
+          - vim
+          - docker.io
+          - ufw
+        state: latest
+        update_cache: true
+
+    - name: Set authorized key for root user
+      ansible.posix.authorized_key:
+        user: root
+        state: present
+        key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+
+    - name: Disable SSH login using password
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin prohibit-password'
+
+    - name: UFW - Allow TCP connections to port 80
+      community.general.ufw:
+        rule: allow
+        port: 80
+        proto: tcp
+
+    - name: UFW - Allow TCP connections to port 443
+      community.general.ufw:
+        rule: allow
+        port: 443
+        proto: tcp
+
+    - name: UFW - Allow SSH access to one IP
+      community.general.ufw:
+        rule: allow
+        port: 22
+        from_ip: 192.168.1.17
+
+    - name: Pull and Run nginx-proxy
+      docker_container:
+        name: nginx-proxy
+        image: nginxproxy/nginx-proxy
+        ports:
+          - "8080:80"
+        expose:
+          - 80
+        detach: yes
+        restart_policy: always
+
+    - name: Pull and Run acme-companion
+      docker_container:
+        name: acme-companion
+        image: nginxproxy/acme-companion
+        restart_policy: always
+
+    - name: Copy Dockerfile
+      copy:
+        src: ../Dockerfile
+        dest: /home/lvillatoro/Dockerfile
+        owner: lvillatoro
+        group: lvillatoro
+        mode: '0644'
+
+    - name: Copy HTML file
+      copy:
+        src: ../index.html
+        dest: /home/lvillatoro/index.html
+        owner: lvillatoro
+        group: lvillatoro
+        mode: '0644'
+
+    - name: Copy CSS file
+      copy:
+        src: ../style.css
+        dest: /home/lvillatoro/style.css
+        owner: lvillatoro
+        group: lvillatoro
+        mode: '0644'
+
+    - name: Build App image
+      docker_image:
+        name: mysite:v1
+        build:
+          path: /home/lvillatoro
+        source: build
+        state: present
+
+    - name: Run App Container
+      docker_container:
+        name: mysite
+        image: mysite:v1
+        env_file:
+          - secrets.yaml
+        restart_policy: always

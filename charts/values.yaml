@@ -1,0 +1,20 @@
+replicaCount: 1
+image:
+  repository: 123456789.dkr.ecr.us-east-1.amazonaws.com/challenge-k8s
+namespace: challenge
+
+specs:
+  ingress:
+    publicUrl: my.super.site.com
+    port: 80
+    ingressClassName: alb
+  service:
+    name: http
+    port: 80
+    protocol: TCP
+    type: LoadBalancer
+
+env:
+  secrets:
+        MY_SUPER_SECRET_1:
+        MY_SUPER_SECRET_2:
