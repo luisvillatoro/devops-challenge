@@ -16,5 +16,5 @@ specs:
 
 env:
   secrets:
-        MY_SUPER_SECRET_1: 65464
-        MY_SUPER_SECRET_2: 84654
+        MY_SUPER_SECRET_1: "secret1"
+        MY_SUPER_SECRET_2: "secret2"
